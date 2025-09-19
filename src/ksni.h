@@ -1,7 +1,7 @@
 #ifndef KSNI_GIO_KSNI_H
 #define KSNI_GIO_KSNI_H
 
-#include "pixmap.h"
+#include "api.h"
 #include <gio/gio.h>
 
 G_DECLARE_FINAL_TYPE(Ksni, ksni, KSNI, KSNI, GObject)

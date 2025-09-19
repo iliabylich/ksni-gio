@@ -5,6 +5,13 @@ project(
     default_options: ['warning_level=3', 'c_std=c99'],
 )
 
+buildtype = get_option('buildtype')
+
+if buildtype == 'debug'
+    add_project_arguments('-fsanitize=address', language: 'c')
+    add_project_link_arguments('-fsanitize=address', language: 'c')
+endif
+
 xxd = generator(
     find_program('xxd'),
     output: '@PLAINNAME@.xxd.h',
@@ -21,12 +28,15 @@ append_null = generator(
 tray = shared_library(
     'tray',
     files(
+        'src/dbusmenu.c',
+        'src/dbusmenu_item.c',
         'src/host.c',
         'src/ksni.c',
         'src/pixmap.c',
         'src/tray.c',
     )
-    + xxd.process(append_null.process('xml/org.kde.StatusNotifierItem.xml')),
+    + xxd.process(append_null.process('xml/org.kde.StatusNotifierItem.xml'))
+    + xxd.process(append_null.process('xml/com.canonical.dbusmenu.xml')),
     dependencies: [
         dependency('gio-2.0'),
     ],

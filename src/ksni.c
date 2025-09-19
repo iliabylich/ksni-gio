@@ -1,6 +1,5 @@
 #include "ksni.h"
 #include "org.kde.StatusNotifierItem.xml.null.xxd.h"
-#include "pixmap.h"
 #include <gio/gio.h>
 #include <glib-object.h>
 #include <glib.h>
@@ -283,7 +282,6 @@ gboolean ksni_start(Ksni *ksni, GDBusConnection *connection) {
 Ksni *ksni_new(void) {
   g_print("ksni_new\n");
   return g_object_new(ksni_get_type(), NULL);
-  ;
 }
 
 const char *ksni_get_dbus_name(Ksni *ksni) { return ksni->alias_name; }
@@ -339,7 +337,7 @@ static GVariant *ksni_on_get_property(GDBusConnection *connection,
   } else if (g_strcmp0(property_name, "ItemIsMenu") == 0) {
     return g_variant_new_boolean(FALSE);
   } else if (g_strcmp0(property_name, "Menu") == 0) {
-    return g_variant_new_object_path("/MenuBar");
+    return g_variant_new_object_path("/Menu");
   } else if (g_strcmp0(property_name, "IconThemePath") == 0) {
     return g_variant_new_string("");
   }
@@ -349,13 +347,8 @@ static GVariant *ksni_on_get_property(GDBusConnection *connection,
   g_object_get_property(G_OBJECT(ksni), property_name, &gvalue);
 
   if (g_strcmp0(property_name, "Id") == 0) {
-    const char *id = ksni->id;
-    if (id == NULL) {
-      id = "";
-    }
-    return g_variant_new_string(id);
+    return g_variant_new_string(ksni->alias_name);
   } else if (g_strcmp0(property_name, "Title") == 0) {
-    g_print("Reading title (%s)\n", ksni->title);
     const char *title = ksni->title;
     if (title == NULL) {
       title = "";

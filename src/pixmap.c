@@ -1,6 +1,7 @@
-#include "pixmap.h"
-#include "glib.h"
+#include "api.h"
+#include "pixmap-private.h"
 #include <glib-object.h>
+#include <glib.h>
 
 struct _Pixmap {
   GObject parent_instance;

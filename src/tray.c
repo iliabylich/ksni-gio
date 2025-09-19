@@ -1,4 +1,5 @@
-#include "tray.h"
+#include "api.h"
+#include "dbusmenu.h"
 #include "host.h"
 #include "ksni.h"
 #include <gio/gio.h>
@@ -18,6 +19,7 @@ struct _Tray {
   guint owned_id;
   Ksni *ksni;
   KsniHost *ksni_host;
+  DBusMenu *dbusmenu;
 };
 
 G_DEFINE_TYPE(Tray, tray, G_TYPE_OBJECT)
@@ -62,6 +64,8 @@ static void on_ksni_ready(Ksni *ksni, gpointer user_data) {
   Tray *tray = TRAY(user_data);
   g_print("KSNI is ready\n");
 
+  dbusmenu_start(tray->dbusmenu, tray->connection);
+
   ksni_host_start_watching(tray->ksni_host, tray->connection);
 }
 
@@ -88,11 +92,12 @@ static void tray_init(Tray *tray) {
   g_signal_connect(tray->ksni, "ready", G_CALLBACK(on_ksni_ready), tray);
 
   tray->ksni_host = ksni_host_new();
-
   g_signal_connect(tray->ksni_host, "appeared", G_CALLBACK(on_host_appeared),
                    tray);
   g_signal_connect(tray->ksni_host, "registered",
                    G_CALLBACK(on_registration_completed), tray);
+
+  tray->dbusmenu = dbusmenu_new();
 
   g_bus_get(G_BUS_TYPE_SESSION, NULL, on_dbus_connected, tray);
 }
@@ -116,4 +121,8 @@ void tray_update_icon_pixmap(Tray *tray, Pixmap *icon_pixmap) {
 
 void tray_update_tooltip(Tray *tray, const char *tooltip) {
   ksni_update_tooltip(tray->ksni, tooltip);
+}
+
+void tray_update_menu(Tray *tray, dbusmenu_item_t *menu) {
+  dbusmenu_update(tray->dbusmenu, menu);
 }
