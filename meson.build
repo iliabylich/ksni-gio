@@ -21,6 +21,7 @@ append_null = generator(
 tray = shared_library(
     'tray',
     files(
+        'src/host.c',
         'src/ksni.c',
         'src/pixmap.c',
         'src/tray.c',

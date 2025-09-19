@@ -1,4 +1,5 @@
 #include "tray.h"
+#include "host.h"
 #include "ksni.h"
 #include <gio/gio.h>
 #include <glib-object.h>
@@ -8,11 +9,15 @@
 struct _Tray {
   GObject parent_instance;
 
-  char *dbus_name;
+  char *icon_name;
+  Pixmap *icon_pixmap;
 
   GDBusConnection *connection;
+  const char *unique_name;
+  char *alias_name;
   guint owned_id;
   Ksni *ksni;
+  KsniHost *ksni_host;
 };
 
 G_DEFINE_TYPE(Tray, tray, G_TYPE_OBJECT)
@@ -38,52 +43,77 @@ static void tray_class_init(TrayClass *klass) {
       NULL, NULL, G_TYPE_NONE, 1, G_TYPE_STRING);
 }
 
-void on_bus_acquired(GDBusConnection *connection, const gchar *name,
-                     gpointer user_data) {
-  (void)name;
-  g_print("bus acquired\n");
+static void on_host_appeared(KsniHost *ksni_host, gpointer user_data) {
   Tray *tray = TRAY(user_data);
+  g_print("Host appeared\n");
+
+  ksni_host_register(ksni_host, ksni_get_dbus_name(tray->ksni));
+}
+
+static void on_registration_completed(KsniHost *ksni_host, gpointer user_data) {
+  (void)ksni_host;
+  (void)user_data;
+  g_print("Registration completed\n");
+}
+
+static void on_ksni_ready(Ksni *ksni, gpointer user_data) {
+  (void)ksni;
+
+  Tray *tray = TRAY(user_data);
+  g_print("KSNI is ready\n");
+
+  ksni_host_start_watching(tray->ksni_host, tray->connection);
+}
+
+void on_dbus_connected(GObject *source_object, GAsyncResult *res,
+                       gpointer data) {
+  (void)source_object;
+
+  GError *error = NULL;
+  GDBusConnection *connection = g_bus_get_finish(res, &error);
+
+  if (error != NULL) {
+    g_printerr("Failed to connected to session DBus: %s\n", error->message);
+    return;
+  }
+
+  g_print("DBus connected\n");
+  Tray *tray = TRAY(data);
   tray->connection = connection;
-}
-
-void on_name_acquired(GDBusConnection *connection, const gchar *name,
-                      gpointer user_data) {
-  (void)connection;
-  (void)name;
-  g_print("name acquired\n");
-  Tray *tray = TRAY(user_data);
-
-  ksni_register(tray->ksni, connection);
-}
-
-void on_name_lost(GDBusConnection *connection, const gchar *name,
-                  gpointer user_data) {
-  (void)connection;
-  (void)name;
-  g_print("name lost\n");
-  Tray *tray = TRAY(user_data);
-  ksni_unregister(tray->ksni, tray->connection);
+  ksni_start(tray->ksni, tray->connection);
 }
 
 static void tray_init(Tray *tray) {
-  tray->ksni = ksni_new("test-app-id");
-  // g_object_set(                                                      //
-  //     tray->ksni,                                                    //
-  //     "Title", "test-title",                                         //
-  //     "IconPixmap", pixmap_new(3, 5, g_bytes_new_static("1111", 5)), //
-  //     "ToolTip", "test-tooltip",                                     //
-  //     NULL);
+  tray->ksni = ksni_new();
+  g_signal_connect(tray->ksni, "ready", G_CALLBACK(on_ksni_ready), tray);
+
+  tray->ksni_host = ksni_host_new();
+
+  g_signal_connect(tray->ksni_host, "appeared", G_CALLBACK(on_host_appeared),
+                   tray);
+  g_signal_connect(tray->ksni_host, "registered",
+                   G_CALLBACK(on_registration_completed), tray);
+
+  g_bus_get(G_BUS_TYPE_SESSION, NULL, on_dbus_connected, tray);
 }
 
-Tray *tray_new(const char *dbus_name) {
+Tray *tray_new(void) {
   g_print("tray_new\n");
-  GObject *object = g_object_new(tray_get_type(), NULL);
-  Tray *tray = TRAY(object);
-  tray->dbus_name = g_strdup(dbus_name);
+  return g_object_new(tray_get_type(), NULL);
+}
 
-  tray->owned_id = g_bus_own_name(G_BUS_TYPE_SESSION, tray->dbus_name,
-                                  G_BUS_NAME_OWNER_FLAGS_NONE, on_bus_acquired,
-                                  on_name_acquired, on_name_lost, tray, NULL);
+void tray_update_title(Tray *tray, const char *title) {
+  ksni_update_title(tray->ksni, title);
+}
 
-  return tray;
+void tray_update_icon_name(Tray *tray, const char *icon_name) {
+  ksni_update_icon_name(tray->ksni, icon_name);
+}
+
+void tray_update_icon_pixmap(Tray *tray, Pixmap *icon_pixmap) {
+  ksni_update_icon_pixmap(tray->ksni, icon_pixmap);
+}
+
+void tray_update_tooltip(Tray *tray, const char *tooltip) {
+  ksni_update_tooltip(tray->ksni, tooltip);
 }

@@ -9,8 +9,13 @@
 struct _Ksni {
   GObject parent_instance;
 
+  GDBusConnection *connection;
   GDBusNodeInfo *introspection;
-  guint registration_id;
+  const char *unique_name;
+  char *alias_name;
+  guint own_request_id;
+  guint object_registration_id;
+  guint host_watch_id;
 
   char *id;
   char *title;
@@ -18,6 +23,12 @@ struct _Ksni {
   Pixmap *icon_pixmap;
   char *tooltip;
 };
+
+enum signal_types {
+  SIGNAL_READY = 0,
+  LAST_SIGNAL,
+};
+static guint signals[LAST_SIGNAL] = {0};
 
 G_DEFINE_TYPE(Ksni, ksni, G_TYPE_OBJECT)
 
@@ -31,9 +42,9 @@ typedef enum {
 } KsniProperty;
 static GParamSpec *properties[N_PROPERTIES] = {0};
 
-static void ksni_init(Ksni *self) {
+static void ksni_init(Ksni *ksni) {
   GError *error = NULL;
-  self->introspection = g_dbus_node_info_new_for_xml(
+  ksni->introspection = g_dbus_node_info_new_for_xml(
       (const char *)org_kde_StatusNotifierItem_xml_null, &error);
   if (error != NULL) {
     g_printerr("failed to create intropspection object: %s\n", error->message);
@@ -43,8 +54,8 @@ static void ksni_init(Ksni *self) {
 
 static void ksni_dispose(GObject *object) {
   g_print("KSNI dispose...\n");
-  Ksni *self = KSNI(object);
-  g_clear_pointer(&self->introspection, g_dbus_node_info_unref);
+  Ksni *ksni = KSNI(object);
+  g_clear_pointer(&ksni->introspection, g_dbus_node_info_unref);
 }
 
 static void ksni_get_property(GObject *object, guint property_id, GValue *value,
@@ -121,6 +132,10 @@ static void ksni_class_init(KsniClass *klass) {
   object_class->get_property = ksni_get_property;
   object_class->set_property = ksni_set_property;
 
+  signals[SIGNAL_READY] = g_signal_new_class_handler(
+      "ready", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL, NULL,
+      NULL, NULL, G_TYPE_NONE, 0);
+
   properties[PROP_ID] =
       g_param_spec_string("Id", NULL, NULL, NULL, G_PARAM_READWRITE);
   properties[PROP_TITLE] =
@@ -135,36 +150,145 @@ static void ksni_class_init(KsniClass *klass) {
   g_object_class_install_properties(object_class, N_PROPERTIES, properties);
 }
 
-Ksni *ksni_new(const char *id) {
-  g_print("ksni_new\n");
-  GObject *object = g_object_new(ksni_get_type(), "Id", id, NULL);
-  Ksni *ksni = KSNI(object);
+static gboolean ksni_set_unique_name(Ksni *ksni) {
+  const char *unique_name = g_dbus_connection_get_unique_name(ksni->connection);
+  if (unique_name == NULL) {
+    g_printerr("Failed to get unique DBus name\n");
+    return FALSE;
+  }
+  g_print("Got unique name: %s\n", unique_name);
+  ksni->unique_name = unique_name;
+  return TRUE;
+}
 
-  return ksni;
+static gboolean ksni_set_alias_name(Ksni *ksni) {
+  const char *unique_name = ksni->unique_name;
+  if (unique_name[0] != ':') {
+    g_print("Malformed unique name\n");
+    return FALSE;
+  }
+  unique_name++;
+  char *clean = g_strdup(unique_name);
+  for (char *ptr = clean; *ptr != '\0'; ptr++) {
+    if (!g_ascii_isdigit(*ptr)) {
+      *ptr = '-';
+    }
+  }
+  char *alias_name = g_strdup_printf("org.kde.StatusNotifierItem-%s", clean);
+  g_free(clean);
+  g_print("Alias name: %s\n", alias_name);
+  g_clear_pointer(&ksni->alias_name, g_free);
+  ksni->alias_name = alias_name;
+  return TRUE;
 }
 
 static const GDBusInterfaceVTable interface_vtable;
 
-void ksni_register(Ksni *ksni, GDBusConnection *connection) {
+static gboolean ksni_register_object(Ksni *ksni) {
   GError *error = NULL;
+  ksni->object_registration_id =
+      g_dbus_connection_register_object(ksni->connection, "/StatusNotifierItem",
+                                        ksni->introspection->interfaces[0],
+                                        &interface_vtable, ksni, NULL, &error);
 
-  GDBusInterfaceInfo *interface_info = NULL;
-  if (ksni->introspection != NULL) {
-    interface_info = ksni->introspection->interfaces[0];
-  }
-
-  ksni->registration_id = g_dbus_connection_register_object(
-      connection, "/StatusNotifierItem", interface_info, &interface_vtable,
-      ksni, NULL, &error);
   if (error != NULL) {
     g_printerr("failed to register DBus object for KSNI: %s\n", error->message);
     g_error_free(error);
+    return FALSE;
+  }
+  return TRUE;
+}
+
+static void on_bus_acquired(GDBusConnection *connection, const gchar *name,
+                            gpointer user_data) {
+  (void)connection;
+  (void)name;
+  (void)user_data;
+}
+
+static void on_name_acquired(GDBusConnection *connection, const gchar *name,
+                             gpointer user_data) {
+  (void)connection;
+  (void)name;
+  Ksni *ksni = KSNI(user_data);
+  g_print("Alias acquired\n");
+  g_signal_emit(ksni, signals[SIGNAL_READY], 0);
+}
+
+static void on_name_lost(GDBusConnection *connection, const gchar *name,
+                         gpointer user_data) {
+  (void)connection;
+  (void)name;
+  (void)user_data;
+  g_print("Alias lost\n");
+}
+
+static void ksni_signal_updated(Ksni *ksni, const char *signal_name) {
+  if (ksni->connection) {
+    GError *error = NULL;
+    g_dbus_connection_emit_signal(ksni->connection, NULL, "/StatusNotifierItem",
+                                  "org.kde.StatusNotifierItem", signal_name,
+                                  NULL, &error);
+    if (error != NULL) {
+      g_printerr("failed to send %s signal: %s\n", signal_name, error->message);
+      g_error_free(error);
+    }
   }
 }
 
-void ksni_unregister(Ksni *ksni, GDBusConnection *connection) {
-  g_dbus_connection_unregister_object(connection, ksni->registration_id);
+void ksni_update_title(Ksni *ksni, const char *title) {
+  g_clear_pointer(&ksni->title, g_free);
+  ksni->title = g_strdup(title);
+  ksni_signal_updated(ksni, "NewTitle");
 }
+
+void ksni_update_icon_name(Ksni *ksni, const char *icon_name) {
+  g_clear_pointer(&ksni->icon_name, g_free);
+  ksni->icon_name = g_strdup(icon_name);
+  ksni_signal_updated(ksni, "NewIcon");
+}
+
+void ksni_update_icon_pixmap(Ksni *ksni, Pixmap *icon_pixmap) {
+  g_clear_pointer(&ksni->icon_pixmap, g_object_unref);
+  ksni->icon_pixmap = icon_pixmap;
+  ksni_signal_updated(ksni, "NewIcon");
+}
+
+void ksni_update_tooltip(Ksni *ksni, const char *tooltip) {
+  g_clear_pointer(&ksni->tooltip, g_free);
+  ksni->tooltip = g_strdup(tooltip);
+  ksni_signal_updated(ksni, "NewToolTip");
+}
+
+gboolean ksni_start(Ksni *ksni, GDBusConnection *connection) {
+  g_print("ksni_start\n");
+  ksni->connection = connection;
+  if (!ksni_set_unique_name(ksni)) {
+    return FALSE;
+  }
+  if (!ksni_set_alias_name(ksni)) {
+    return FALSE;
+  }
+  if (!ksni_register_object(ksni)) {
+    return FALSE;
+  }
+
+  ksni->own_request_id = g_bus_own_name(
+      G_BUS_TYPE_SESSION, ksni->alias_name, G_BUS_NAME_OWNER_FLAGS_NONE,
+      on_bus_acquired, on_name_acquired, on_name_lost, ksni, NULL);
+
+  return TRUE;
+}
+
+Ksni *ksni_new(void) {
+  g_print("ksni_new\n");
+  return g_object_new(ksni_get_type(), NULL);
+  ;
+}
+
+const char *ksni_get_dbus_name(Ksni *ksni) { return ksni->alias_name; }
+
+// DBus interface
 
 static void ksni_on_method_call(GDBusConnection *connection,
                                 const gchar *sender, const gchar *object_path,
@@ -231,6 +355,7 @@ static GVariant *ksni_on_get_property(GDBusConnection *connection,
     }
     return g_variant_new_string(id);
   } else if (g_strcmp0(property_name, "Title") == 0) {
+    g_print("Reading title (%s)\n", ksni->title);
     const char *title = ksni->title;
     if (title == NULL) {
       title = "";
