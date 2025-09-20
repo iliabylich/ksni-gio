@@ -32,16 +32,6 @@ static guint signals[LAST_SIGNAL] = {0};
 
 G_DEFINE_TYPE(Ksni, ksni, G_TYPE_OBJECT)
 
-typedef enum {
-  PROP_ID = 1,
-  PROP_TITLE,
-  PROP_ICON_NAME,
-  PROP_ICON_PIXMAP,
-  PROP_TOOLTIP,
-  N_PROPERTIES,
-} KsniProperty;
-static GParamSpec *properties[N_PROPERTIES] = {0};
-
 static void ksni_init(Ksni *ksni) {
   GError *error = NULL;
   ksni->introspection = g_dbus_node_info_new_for_xml(
@@ -82,79 +72,9 @@ static void ksni_dispose(GObject *object) {
   G_OBJECT_CLASS(ksni_parent_class)->dispose(object);
 }
 
-static void ksni_get_property(GObject *object, guint property_id, GValue *value,
-                              GParamSpec *pspec) {
-  Ksni *ksni = KSNI(object);
-
-  switch ((KsniProperty)property_id) {
-  case PROP_ID:
-    g_value_set_string(value, ksni->id);
-    break;
-
-  case PROP_TITLE:
-    g_value_set_string(value, ksni->title);
-    break;
-
-  case PROP_ICON_NAME:
-    g_value_set_string(value, ksni->icon_name);
-    break;
-
-  case PROP_ICON_PIXMAP:
-    g_value_set_object(value, ksni->icon_pixmap);
-    break;
-
-  case PROP_TOOLTIP:
-    g_value_set_string(value, ksni->tooltip);
-    break;
-
-  default:
-    G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    break;
-  }
-}
-
-static void ksni_set_property(GObject *object, guint property_id,
-                              const GValue *value, GParamSpec *pspec) {
-  Ksni *ksni = KSNI(object);
-
-  switch ((KsniProperty)property_id) {
-  case PROP_ID:
-    g_clear_pointer(&ksni->id, g_free);
-    ksni->id = g_value_dup_string(value);
-    break;
-
-  case PROP_TITLE:
-    g_clear_pointer(&ksni->title, g_free);
-    ksni->title = g_value_dup_string(value);
-    break;
-
-  case PROP_ICON_NAME:
-    g_clear_pointer(&ksni->icon_name, g_free);
-    ksni->icon_name = g_value_dup_string(value);
-    break;
-
-  case PROP_ICON_PIXMAP:
-    g_clear_pointer(&ksni->icon_pixmap, g_object_unref);
-    ksni->icon_pixmap = g_value_get_object(value);
-    break;
-
-  case PROP_TOOLTIP:
-    g_clear_pointer(&ksni->tooltip, g_free);
-    ksni->tooltip = g_value_dup_string(value);
-    break;
-
-  default:
-    G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    break;
-  }
-}
-
 static void ksni_class_init(KsniClass *klass) {
   GObjectClass *object_class = G_OBJECT_CLASS(klass);
   object_class->dispose = ksni_dispose;
-
-  object_class->get_property = ksni_get_property;
-  object_class->set_property = ksni_set_property;
 
   signals[SIGNAL_READY] = g_signal_new_class_handler(
       "ready", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL, NULL,
@@ -162,19 +82,6 @@ static void ksni_class_init(KsniClass *klass) {
   signals[SIGNAL_CLICK] = g_signal_new_class_handler(
       "click", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL, NULL,
       NULL, NULL, G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_INT);
-
-  properties[PROP_ID] =
-      g_param_spec_string("Id", NULL, NULL, NULL, G_PARAM_READWRITE);
-  properties[PROP_TITLE] =
-      g_param_spec_string("Title", NULL, NULL, NULL, G_PARAM_READWRITE);
-  properties[PROP_ICON_NAME] =
-      g_param_spec_string("IconName", NULL, NULL, NULL, G_PARAM_READWRITE);
-  properties[PROP_ICON_PIXMAP] = g_param_spec_object(
-      "IconPixmap", NULL, NULL, G_TYPE_OBJECT, G_PARAM_READWRITE);
-  properties[PROP_TOOLTIP] =
-      g_param_spec_string("ToolTip", NULL, NULL, NULL, G_PARAM_READWRITE);
-
-  g_object_class_install_properties(object_class, N_PROPERTIES, properties);
 }
 
 static gboolean ksni_set_unique_name(Ksni *ksni) {
@@ -223,6 +130,7 @@ static gboolean ksni_register_object(Ksni *ksni) {
     g_error_free(error);
     return FALSE;
   }
+  g_print("Registration of /StatusNotifierItem has completed\n");
   return TRUE;
 }
 
@@ -341,6 +249,14 @@ static void ksni_on_method_call(GDBusConnection *connection,
   g_dbus_method_invocation_return_value(invocation, NULL);
 }
 
+static const char *str_or(const char *str, const char *fallback) {
+  if (str != NULL) {
+    return str;
+  } else {
+    return fallback;
+  }
+}
+
 static GVariant *ksni_on_get_property(GDBusConnection *connection,
                                       const gchar *sender,
                                       const gchar *object_path,
@@ -353,8 +269,6 @@ static GVariant *ksni_on_get_property(GDBusConnection *connection,
   (void)interface_name;
   (void)property_name;
   (void)error;
-
-  Ksni *ksni = KSNI(user_data);
 
   // constant properties, required by spec
   if (g_strcmp0(property_name, "Category") == 0) {
@@ -381,32 +295,19 @@ static GVariant *ksni_on_get_property(GDBusConnection *connection,
     return g_variant_new_string("");
   }
 
-  GValue gvalue = G_VALUE_INIT;
-  g_object_get_property(G_OBJECT(ksni), property_name, &gvalue);
+  Ksni *ksni = KSNI(user_data);
 
   if (g_strcmp0(property_name, "Id") == 0) {
     return g_variant_new_string(ksni->alias_name);
   } else if (g_strcmp0(property_name, "Title") == 0) {
-    const char *title = ksni->title;
-    if (title == NULL) {
-      title = "";
-    }
-    return g_variant_new_string(title);
+    return g_variant_new_string(str_or(ksni->title, ""));
   } else if (g_strcmp0(property_name, "IconName") == 0) {
-    const char *icon_name = ksni->icon_name;
-    if (icon_name == NULL) {
-      icon_name = "";
-    }
-    return g_variant_new_string(icon_name);
+    return g_variant_new_string(str_or(ksni->icon_name, ""));
   } else if (g_strcmp0(property_name, "IconPixmap") == 0) {
-    Pixmap *pixmap = g_value_get_object(&gvalue);
-    return pixmap_to_gvariant(pixmap);
+    return pixmap_to_gvariant(ksni->icon_pixmap);
   } else if (g_strcmp0(property_name, "ToolTip") == 0) {
-    const char *tooltip = ksni->tooltip;
-    if (tooltip == NULL) {
-      tooltip = "";
-    }
-    return g_variant_new("(sa(iiay)ss)", tooltip, NULL, "", "");
+    return g_variant_new("(sa(iiay)ss)", str_or(ksni->tooltip, ""), NULL, "",
+                         "");
   }
 
   // this function only receives get-property requests for known fields

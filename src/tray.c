@@ -63,8 +63,6 @@ static void tray_class_init(TrayClass *klass) {
 
 static void on_host_appeared(KsniHost *ksni_host, gpointer user_data) {
   Tray *tray = TRAY(user_data);
-  g_print("Host appeared\n");
-
   ksni_host_register(ksni_host, ksni_get_dbus_name(tray->ksni));
 }
 
