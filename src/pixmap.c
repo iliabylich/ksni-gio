@@ -24,7 +24,6 @@ static GParamSpec *properties[N_PROPERTIES] = {0};
 static void pixmap_init(Pixmap *pixmap) { (void)pixmap; }
 
 static void pixmap_dispose(GObject *object) {
-  g_print("PIXMAP dispose...\n");
   Pixmap *pixmap = PIXMAP(object);
   g_clear_pointer(&pixmap->bytes, g_bytes_unref);
 }
@@ -96,7 +95,6 @@ static void pixmap_class_init(PixmapClass *klass) {
 }
 
 Pixmap *pixmap_new(guint w, guint h, GBytes *bytes) {
-  g_print("pixmap_new\n");
   return g_object_new(   //
       pixmap_get_type(), //
       "w", w,            //

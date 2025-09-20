@@ -2,13 +2,15 @@
 #include <glib-object.h>
 #include <glib.h>
 
+gboolean exiting = FALSE;
 typedef struct {
   GMainLoop *loop;
   Tray *tray;
 } exit_data_t;
 int do_exit(exit_data_t *exit_data) {
-  g_main_loop_quit(exit_data->loop);
+  exiting = TRUE;
   g_object_unref(exit_data->tray);
+  g_main_loop_quit(exit_data->loop);
   return G_SOURCE_REMOVE;
 }
 
@@ -100,8 +102,9 @@ void tray_update_everything(Tray *tray) {
 }
 
 int every_second(Tray *tray) {
-  g_print("tick\n");
-  tray_update_everything(tray);
+  if (!exiting) {
+    tray_update_everything(tray);
+  }
   return G_SOURCE_CONTINUE;
 }
 
@@ -140,10 +143,14 @@ int main(void) {
 
   GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
-  // exit_data_t exit_data = {.loop = loop, .tray = tray};
-  // g_timeout_add(5000, G_SOURCE_FUNC(do_exit), &exit_data);
+  exit_data_t exit_data = {.loop = loop, .tray = tray};
+  if (getenv("TEST_EXIT") != NULL) {
+    g_timeout_add(2000, G_SOURCE_FUNC(do_exit), &exit_data);
+  }
 
-  // g_timeout_add(1000, G_SOURCE_FUNC(every_second), tray);
+  if (getenv("CHANGE_EVERY_SECOND") != NULL) {
+    g_timeout_add(1000, G_SOURCE_FUNC(every_second), tray);
+  }
 
   g_main_loop_run(loop);
   g_main_loop_unref(loop);

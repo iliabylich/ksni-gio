@@ -32,9 +32,7 @@ enum signal_types {
 static guint signals[LAST_SIGNAL] = {0};
 
 static void tray_dispose(GObject *object) {
-  g_print("TRAY dispose...\n");
   Tray *tray = TRAY(object);
-  g_bus_unown_name(tray->owned_id);
   g_clear_pointer(&tray->ksni, g_object_unref);
 }
 
@@ -54,12 +52,6 @@ static void on_host_appeared(KsniHost *ksni_host, gpointer user_data) {
   g_print("Host appeared\n");
 
   ksni_host_register(ksni_host, ksni_get_dbus_name(tray->ksni));
-}
-
-static void on_registration_completed(KsniHost *ksni_host, gpointer user_data) {
-  (void)ksni_host;
-  (void)user_data;
-  g_print("Registration completed\n");
 }
 
 static void on_ksni_ready(Ksni *ksni, gpointer user_data) {
@@ -111,8 +103,6 @@ static void tray_init(Tray *tray) {
   tray->ksni_host = ksni_host_new();
   g_signal_connect(tray->ksni_host, "appeared", G_CALLBACK(on_host_appeared),
                    tray);
-  g_signal_connect(tray->ksni_host, "registered",
-                   G_CALLBACK(on_registration_completed), tray);
 
   tray->dbusmenu = dbusmenu_new();
   g_signal_connect(tray->dbusmenu, "item-click", G_CALLBACK(forward_item_click),
@@ -121,10 +111,7 @@ static void tray_init(Tray *tray) {
   g_bus_get(G_BUS_TYPE_SESSION, NULL, on_dbus_connected, tray);
 }
 
-Tray *tray_new(void) {
-  g_print("tray_new\n");
-  return g_object_new(tray_get_type(), NULL);
-}
+Tray *tray_new(void) { return g_object_new(tray_get_type(), NULL); }
 
 void tray_update_title(Tray *tray, const char *title) {
   ksni_update_title(tray->ksni, title);

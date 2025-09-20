@@ -9,7 +9,6 @@ struct _KsniHost {
 
 enum signal_types {
   SIGNAL_APPEARED = 0,
-  SIGNAL_REGISTERED,
   LAST_SIGNAL,
 };
 static guint signals[LAST_SIGNAL] = {0};
@@ -21,9 +20,6 @@ static void ksni_host_class_init(KsniHostClass *klass) {
 
   signals[SIGNAL_APPEARED] = g_signal_new_class_handler(
       "appeared", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL,
-      NULL, NULL, NULL, G_TYPE_NONE, 0);
-  signals[SIGNAL_REGISTERED] = g_signal_new_class_handler(
-      "registered", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL,
       NULL, NULL, NULL, G_TYPE_NONE, 0);
 }
 
@@ -59,7 +55,7 @@ void ksni_host_start_watching(KsniHost *ksni_host,
 
 static void on_registration_completed(GObject *source_object, GAsyncResult *res,
                                       gpointer data) {
-  KsniHost *ksni_host = KSNI_HOST(data);
+  (void)data;
 
   GError *error = NULL;
   GVariant *response = g_dbus_connection_call_finish(
@@ -73,7 +69,6 @@ static void on_registration_completed(GObject *source_object, GAsyncResult *res,
 
   g_print("Registration completed successfully\n");
   g_variant_unref(response);
-  g_signal_emit(ksni_host, signals[SIGNAL_REGISTERED], 0);
 }
 
 void ksni_host_register(KsniHost *ksni_host, const char *self_dbus_name) {

@@ -73,7 +73,6 @@ static gboolean dbusmenu_register_object(DBusMenu *dbusmenu) {
 }
 
 gboolean dbusmenu_start(DBusMenu *dbusmenu, GDBusConnection *connection) {
-  g_print("dbusmenu_start\n");
   dbusmenu->connection = connection;
   if (!dbusmenu_register_object(dbusmenu)) {
     return FALSE;
@@ -107,10 +106,7 @@ void dbusmenu_update(DBusMenu *dbusmenu, dbusmenu_item_t *menu) {
   }
 }
 
-DBusMenu *dbusmenu_new(void) {
-  g_print("dbusmenu_new\n");
-  return g_object_new(dbusmenu_get_type(), NULL);
-}
+DBusMenu *dbusmenu_new(void) { return g_object_new(dbusmenu_get_type(), NULL); }
 
 // DBus interrface
 

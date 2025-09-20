@@ -53,7 +53,6 @@ static void ksni_init(Ksni *ksni) {
 }
 
 static void ksni_dispose(GObject *object) {
-  g_print("KSNI dispose...\n");
   Ksni *ksni = KSNI(object);
   g_clear_pointer(&ksni->introspection, g_dbus_node_info_unref);
 }
@@ -223,7 +222,6 @@ static void on_name_lost(GDBusConnection *connection, const gchar *name,
   (void)connection;
   (void)name;
   (void)user_data;
-  g_print("Alias lost\n");
 }
 
 static void ksni_signal_updated(Ksni *ksni, const char *signal_name) {
@@ -264,7 +262,6 @@ void ksni_update_tooltip(Ksni *ksni, const char *tooltip) {
 }
 
 gboolean ksni_start(Ksni *ksni, GDBusConnection *connection) {
-  g_print("ksni_start\n");
   ksni->connection = connection;
   if (!ksni_set_unique_name(ksni)) {
     return FALSE;
@@ -283,10 +280,7 @@ gboolean ksni_start(Ksni *ksni, GDBusConnection *connection) {
   return TRUE;
 }
 
-Ksni *ksni_new(void) {
-  g_print("ksni_new\n");
-  return g_object_new(ksni_get_type(), NULL);
-}
+Ksni *ksni_new(void) { return g_object_new(ksni_get_type(), NULL); }
 
 const char *ksni_get_dbus_name(Ksni *ksni) { return ksni->alias_name; }
 
