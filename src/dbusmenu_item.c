@@ -153,6 +153,7 @@ static const char *item_type_to_string(dbusmenu_item_type_t type) {
   case DBUSMENU_ITEM_TYPE_STANDARD:
     return "standard";
   case DBUSMENU_ITEM_TYPE_SEPARATOR:
+  default:
     return "separator";
   }
 }
@@ -165,13 +166,12 @@ toggle_type_to_string(dbusmenu_item_toggle_type_t toggle_type) {
   case DBUSMENU_ITEM_TOGGLE_TYPE_RADIO:
     return "radio";
   case DBUSMENU_ITEM_TOGGLE_TYPE_NONE:
+  default:
     return "";
   }
 }
 
 GVariant *dbusmenu_item_serialize(dbusmenu_item_t *item) {
-  g_printerr("Serializing item %p\n", item);
-
   GVariantBuilder props_builder;
   g_variant_builder_init(&props_builder, G_VARIANT_TYPE("a{sv}"));
 

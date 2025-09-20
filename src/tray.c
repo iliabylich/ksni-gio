@@ -26,6 +26,7 @@ G_DEFINE_TYPE(Tray, tray, G_TYPE_OBJECT)
 
 enum signal_types {
   SIGNAL_CLICK = 0,
+  SIGNAL_ITEM_CLICK,
   LAST_SIGNAL,
 };
 static guint signals[LAST_SIGNAL] = {0};
@@ -43,6 +44,9 @@ static void tray_class_init(TrayClass *klass) {
   signals[SIGNAL_CLICK] = g_signal_new_class_handler(
       "click", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL, NULL,
       NULL, NULL, G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_INT);
+  signals[SIGNAL_ITEM_CLICK] = g_signal_new_class_handler(
+      "item-click", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL,
+      NULL, NULL, NULL, G_TYPE_NONE, 1, G_TYPE_UINT);
 }
 
 static void on_host_appeared(KsniHost *ksni_host, gpointer user_data) {
@@ -93,6 +97,12 @@ void on_dbus_connected(GObject *source_object, GAsyncResult *res,
   ksni_start(tray->ksni, tray->connection);
 }
 
+void forward_item_click(DBusMenu *dbusmenu, guint item_id, gpointer user_data) {
+  (void)dbusmenu;
+  Tray *tray = TRAY(user_data);
+  g_signal_emit(tray, signals[SIGNAL_ITEM_CLICK], 0, item_id);
+}
+
 static void tray_init(Tray *tray) {
   tray->ksni = ksni_new();
   g_signal_connect(tray->ksni, "ready", G_CALLBACK(on_ksni_ready), tray);
@@ -105,6 +115,8 @@ static void tray_init(Tray *tray) {
                    G_CALLBACK(on_registration_completed), tray);
 
   tray->dbusmenu = dbusmenu_new();
+  g_signal_connect(tray->dbusmenu, "item-click", G_CALLBACK(forward_item_click),
+                   tray);
 
   g_bus_get(G_BUS_TYPE_SESSION, NULL, on_dbus_connected, tray);
 }

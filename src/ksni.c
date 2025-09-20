@@ -296,7 +296,6 @@ static void ksni_on_activate(Ksni *ksni, GVariant *parameters,
                              GDBusMethodInvocation *invocation) {
   gint32 x, y;
   g_variant_get(parameters, "(ii)", &x, &y);
-  g_print("inner: %d %d\n", x, y);
   g_signal_emit(ksni, signals[SIGNAL_CLICK], 0, x, y);
   g_dbus_method_invocation_return_value(invocation, NULL);
 }
@@ -356,7 +355,7 @@ static GVariant *ksni_on_get_property(GDBusConnection *connection,
   } else if (g_strcmp0(property_name, "AttentionMovieName") == 0) {
     return g_variant_new_string("");
   } else if (g_strcmp0(property_name, "ItemIsMenu") == 0) {
-    return g_variant_new_boolean(FALSE);
+    return g_variant_new_boolean(TRUE);
   } else if (g_strcmp0(property_name, "Menu") == 0) {
     return g_variant_new_object_path("/Menu");
   } else if (g_strcmp0(property_name, "IconThemePath") == 0) {

@@ -4,7 +4,9 @@
 
     <!-- PROPERTIES  -->
     <property name="Version" type="u" access="read" />
+    <property name="TextDirection" type="s" access="read" />
     <property name="Status" type="s" access="read" />
+    <property name="IconThemePath" type="as" access="read" />
 
     <!-- METHODS  -->
     <method name="GetLayout">
@@ -16,9 +18,9 @@
     </method>
 
     <method name="GetGroupProperties">
-      <arg type="ai" name="ids" direction="in"  />
-      <arg type="as" name="propertyNames" direction="in"  />
-      <arg type="a(ia{sv})" name="properties" direction="out"  />
+      <arg type="ai" name="ids" direction="in" />
+      <arg type="as" name="propertyNames" direction="in" />
+      <arg type="a(ia{sv})" name="properties" direction="out" />
     </method>
 
     <method name="GetProperty">
@@ -28,10 +30,15 @@
     </method>
 
     <method name="Event">
-      <arg type="i" name="id" direction="in"  />
+      <arg type="i" name="id" direction="in" />
       <arg type="s" name="eventId" direction="in" />
       <arg type="v" name="data" direction="in" />
       <arg type="u" name="timestamp" direction="in" />
+    </method>
+
+    <method name="EventGroup">
+      <arg type="a(isvu)" name="events" direction="in" />
+      <arg type="ai" name="idErrors" direction="out" />
     </method>
 
     <method name="AboutToShow">
@@ -39,17 +46,21 @@
       <arg type="b" name="needUpdate" direction="out" />
     </method>
 
+    <method name="AboutToShowGroup">
+      <arg type="ai" name="ids" direction="in" />
+      <arg type="ai" name="updatesNeeded" direction="out" />
+      <arg type="ai" name="idErrors" direction="out" />
+    </method>
+
     <!-- SIGNALS -->
     <signal name="ItemsPropertiesUpdated">
       <arg type="a(ia{sv})" name="updatedProps" direction="out" />
       <arg type="a(ias)" name="removedProps" direction="out" />
     </signal>
-
     <signal name="LayoutUpdated">
       <arg type="u" name="revision" direction="out" />
       <arg type="i" name="parent" direction="out" />
     </signal>
-
     <signal name="ItemActivationRequested">
       <arg type="i" name="id" direction="out" />
       <arg type="u" name="timestamp" direction="out" />
