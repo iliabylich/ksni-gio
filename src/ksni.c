@@ -191,7 +191,7 @@ static gboolean ksni_set_unique_name(Ksni *ksni) {
 static gboolean ksni_set_alias_name(Ksni *ksni) {
   const char *unique_name = ksni->unique_name;
   if (unique_name == NULL || unique_name[0] != ':') {
-    g_print("Malformed unique name\n");
+    g_printerr("Malformed unique name\n");
     return FALSE;
   }
   unique_name++;
@@ -337,7 +337,7 @@ static void ksni_on_method_call(GDBusConnection *connection,
     ksni_on_activate(ksni, parameters, invocation);
     return;
   }
-  g_print("Unsupported KSNI method call %s\n", method_name);
+  g_printerr("Unsupported KSNI method call: %s\n", method_name);
   g_dbus_method_invocation_return_value(invocation, NULL);
 }
 

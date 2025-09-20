@@ -272,7 +272,7 @@ dbusmenu_on_method_call(GDBusConnection *connection, const gchar *sender,
     return;
   }
 
-  g_print("DBusMenu unsupported method_call %s\n", method_name);
+  g_printerr("Unsupported DBusMenu method call: %s\n", method_name);
   g_dbus_method_invocation_return_value(invocation, NULL);
 }
 
@@ -303,7 +303,7 @@ static GVariant *dbusmenu_on_get_property(GDBusConnection *connection,
   // this function only receives get-property requests for known fields
   // unknown fields are automatically handled by Gio.
   // Technically the next line is meant to be unreachable
-  g_printerr("Unsupported DBusMenu property %s\n", property_name);
+  g_printerr("Unsupported DBusMenu property: %s\n", property_name);
   return NULL;
 }
 
