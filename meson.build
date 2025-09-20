@@ -43,9 +43,14 @@ ksni_gio = shared_library(
     ],
 )
 
+icons = [
+    xxd.process('icons/clouds.argb'),
+    xxd.process('icons/sun.argb'),
+]
+
 executable(
     'example',
-    files('examples/main.c'),
+    files('examples/main.c') + icons,
     link_with: [ksni_gio],
     include_directories: [
         include_directories('src'),

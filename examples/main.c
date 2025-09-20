@@ -1,4 +1,6 @@
+#include "clouds.argb.xxd.h"
 #include "ksni-gio.h"
+#include "sun.argb.xxd.h"
 #include <glib-object.h>
 #include <glib.h>
 
@@ -29,6 +31,15 @@ const char *gen_icon_name(void) {
   } else {
     return "edit-delete";
   }
+}
+Pixmap *gen_icon_pixmap(void) {
+  GBytes *bytes;
+  if (counter % 2 == 0) {
+    bytes = g_bytes_new_static(clouds_argb, clouds_argb_len);
+  } else {
+    bytes = g_bytes_new_static(sun_argb, sun_argb_len);
+  }
+  return pixmap_new(32, 32, bytes);
 }
 #define ROOT_ID 0
 #define STANDARD_ITEM_ID 1
@@ -97,7 +108,11 @@ dbusmenu_item_t *gen_menu(void) {
 void tray_update_everything(Tray *tray) {
   counter++;
   tray_update_title(tray, gen_title());
-  tray_update_icon_name(tray, gen_icon_name());
+  if (getenv("USE_ICON_PIXMAP")) {
+    tray_update_icon_pixmap(tray, gen_icon_pixmap());
+  } else {
+    tray_update_icon_name(tray, gen_icon_name());
+  }
   tray_update_menu(tray, gen_menu());
 }
 
