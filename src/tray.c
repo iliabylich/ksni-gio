@@ -25,7 +25,7 @@ struct _Tray {
 G_DEFINE_TYPE(Tray, tray, G_TYPE_OBJECT)
 
 enum signal_types {
-  SIGNAL_ERROR = 0,
+  SIGNAL_CLICK = 0,
   LAST_SIGNAL,
 };
 static guint signals[LAST_SIGNAL] = {0};
@@ -40,9 +40,9 @@ static void tray_dispose(GObject *object) {
 static void tray_class_init(TrayClass *klass) {
   GObjectClass *object_class = G_OBJECT_CLASS(klass);
   object_class->dispose = tray_dispose;
-  signals[SIGNAL_ERROR] = g_signal_new_class_handler(
-      "error", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL, NULL,
-      NULL, NULL, G_TYPE_NONE, 1, G_TYPE_STRING);
+  signals[SIGNAL_CLICK] = g_signal_new_class_handler(
+      "click", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL, NULL,
+      NULL, NULL, G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_INT);
 }
 
 static void on_host_appeared(KsniHost *ksni_host, gpointer user_data) {
@@ -69,6 +69,12 @@ static void on_ksni_ready(Ksni *ksni, gpointer user_data) {
   ksni_host_start_watching(tray->ksni_host, tray->connection);
 }
 
+static void on_ksni_click(Ksni *ksni, gint x, gint y, gpointer user_data) {
+  (void)ksni;
+  Tray *tray = TRAY(user_data);
+  g_signal_emit(tray, signals[SIGNAL_CLICK], 0, x, y);
+}
+
 void on_dbus_connected(GObject *source_object, GAsyncResult *res,
                        gpointer data) {
   (void)source_object;
@@ -90,6 +96,7 @@ void on_dbus_connected(GObject *source_object, GAsyncResult *res,
 static void tray_init(Tray *tray) {
   tray->ksni = ksni_new();
   g_signal_connect(tray->ksni, "ready", G_CALLBACK(on_ksni_ready), tray);
+  g_signal_connect(tray->ksni, "click", G_CALLBACK(on_ksni_click), tray);
 
   tray->ksni_host = ksni_host_new();
   g_signal_connect(tray->ksni_host, "appeared", G_CALLBACK(on_host_appeared),

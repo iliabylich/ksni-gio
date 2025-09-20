@@ -25,6 +25,7 @@ struct _Ksni {
 
 enum signal_types {
   SIGNAL_READY = 0,
+  SIGNAL_CLICK,
   LAST_SIGNAL,
 };
 static guint signals[LAST_SIGNAL] = {0};
@@ -134,6 +135,9 @@ static void ksni_class_init(KsniClass *klass) {
   signals[SIGNAL_READY] = g_signal_new_class_handler(
       "ready", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL, NULL,
       NULL, NULL, G_TYPE_NONE, 0);
+  signals[SIGNAL_CLICK] = g_signal_new_class_handler(
+      "click", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL, NULL,
+      NULL, NULL, G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_INT);
 
   properties[PROP_ID] =
       g_param_spec_string("Id", NULL, NULL, NULL, G_PARAM_READWRITE);
@@ -288,6 +292,15 @@ const char *ksni_get_dbus_name(Ksni *ksni) { return ksni->alias_name; }
 
 // DBus interface
 
+static void ksni_on_activate(Ksni *ksni, GVariant *parameters,
+                             GDBusMethodInvocation *invocation) {
+  gint32 x, y;
+  g_variant_get(parameters, "(ii)", &x, &y);
+  g_print("inner: %d %d\n", x, y);
+  g_signal_emit(ksni, signals[SIGNAL_CLICK], 0, x, y);
+  g_dbus_method_invocation_return_value(invocation, NULL);
+}
+
 static void ksni_on_method_call(GDBusConnection *connection,
                                 const gchar *sender, const gchar *object_path,
                                 const gchar *interface_name,
@@ -298,9 +311,15 @@ static void ksni_on_method_call(GDBusConnection *connection,
   (void)sender;
   (void)object_path;
   (void)interface_name;
-  (void)method_name;
   (void)parameters;
-  (void)user_data;
+
+  Ksni *ksni = KSNI(user_data);
+
+  if (g_strcmp0(method_name, "Activate") == 0) {
+    ksni_on_activate(ksni, parameters, invocation);
+    return;
+  }
+  g_print("Unsupported KSNI method call %s\n", method_name);
   g_dbus_method_invocation_return_value(invocation, NULL);
 }
 
@@ -316,6 +335,8 @@ static GVariant *ksni_on_get_property(GDBusConnection *connection,
   (void)interface_name;
   (void)property_name;
   (void)error;
+
+  Ksni *ksni = KSNI(user_data);
 
   // constant properties, required by spec
   if (g_strcmp0(property_name, "Category") == 0) {
@@ -342,7 +363,6 @@ static GVariant *ksni_on_get_property(GDBusConnection *connection,
     return g_variant_new_string("");
   }
 
-  Ksni *ksni = KSNI(user_data);
   GValue gvalue = G_VALUE_INIT;
   g_object_get_property(G_OBJECT(ksni), property_name, &gvalue);
 

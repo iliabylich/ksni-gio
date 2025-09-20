@@ -88,10 +88,16 @@ int every_second(Tray *tray) {
   return G_SOURCE_CONTINUE;
 }
 
+void on_tray_click(Tray *tray, int x, int y, gpointer user_data) {
+  (void)tray;
+  (void)user_data;
+  g_print("Tray clicked at x=%d y=%d\n", x, y);
+}
+
 int main(void) {
   Tray *tray = tray_new();
-
   tray_update_everything(tray);
+  g_signal_connect(tray, "click", G_CALLBACK(on_tray_click), NULL);
 
   GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
