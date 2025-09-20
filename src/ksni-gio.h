@@ -1,5 +1,5 @@
-#ifndef TRAY_API_H
-#define TRAY_API_H
+#ifndef KSNI_GIO_H
+#define KSNI_GIO_H
 
 #include <glib-object.h>
 
@@ -36,4 +36,4 @@ void tray_update_icon_pixmap(Tray *tray, Pixmap *icon_pixmap);
 void tray_update_tooltip(Tray *tray, const char *tooltip);
 void tray_update_menu(Tray *tray, dbusmenu_item_t *menu);
 
-#endif // TRAY_API_H
+#endif // KSNI_GIO_H

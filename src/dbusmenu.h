@@ -1,7 +1,7 @@
 #ifndef DBUSMENU_H
 #define DBUSMENU_H
 
-#include "api.h"
+#include "ksni-gio.h"
 #include <gio/gio.h>
 #include <glib-object.h>
 #include <glib.h>

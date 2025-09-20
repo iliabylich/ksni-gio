@@ -1,4 +1,4 @@
-#include "host.h"
+#include "ksni_host.h"
 
 struct _KsniHost {
   GObject parent_instance;

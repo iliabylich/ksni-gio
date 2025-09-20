@@ -1,7 +1,7 @@
-#ifndef DBUSMENU_ITEM_H
-#define DBUSMENU_ITEM_H
+#ifndef DBUSMENU_ITEM_PRIVATE_H
+#define DBUSMENU_ITEM_PRIVATE_H
 
-#include "api.h"
+#include "ksni-gio.h"
 
 typedef enum {
   DBUSMENU_ITEM_TYPE_STANDARD,
@@ -47,4 +47,4 @@ void dbusmenu_item_free(dbusmenu_item_t *item);
 dbusmenu_item_t *dbusmenu_item_find_node(dbusmenu_item_t *item, guint id);
 dbusmenu_item_t *dbusmenu_item_clone_tree(dbusmenu_item_t *item, guint depth);
 
-#endif // DBUSMENU_ITEM_H
+#endif // DBUSMENU_ITEM_PRIVATE_H

@@ -1,7 +1,7 @@
-#ifndef KSNI_GIO_KSNI_H
-#define KSNI_GIO_KSNI_H
+#ifndef KSNI_H
+#define KSNI_H
 
-#include "api.h"
+#include "ksni-gio.h"
 #include <gio/gio.h>
 
 G_DECLARE_FINAL_TYPE(Ksni, ksni, KSNI, KSNI, GObject)
@@ -18,4 +18,4 @@ gboolean ksni_start(Ksni *ksni, GDBusConnection *connection);
 
 const char *ksni_get_dbus_name(Ksni *ksni);
 
-#endif // KSNI_GIO_KSNI_H
+#endif // KSNI_H

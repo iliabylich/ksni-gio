@@ -1,9 +1,9 @@
 #include "dbusmenu.h"
 #include "com.canonical.dbusmenu.xml.null.xxd.h"
-#include "dbusmenu_item-private.h"
-#include "glib-object.h"
-#include "glib.h"
-#include "src/api.h"
+#include "dbusmenu_item_private.h"
+#include "ksni-gio.h"
+#include <glib-object.h>
+#include <glib.h>
 
 struct _DBusMenu {
   GObject parent_instance;

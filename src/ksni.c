@@ -374,7 +374,7 @@ static GVariant *ksni_on_get_property(GDBusConnection *connection,
   } else if (g_strcmp0(property_name, "AttentionMovieName") == 0) {
     return g_variant_new_string("");
   } else if (g_strcmp0(property_name, "ItemIsMenu") == 0) {
-    return g_variant_new_boolean(TRUE);
+    return g_variant_new_boolean(FALSE);
   } else if (g_strcmp0(property_name, "Menu") == 0) {
     return g_variant_new_object_path("/Menu");
   } else if (g_strcmp0(property_name, "IconThemePath") == 0) {

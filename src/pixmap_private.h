@@ -1,7 +1,7 @@
 #ifndef PIXMAP_PRIVATE_H
 #define PIXMAP_PRIVATE_H
 
-#include "api.h"
+#include "ksni-gio.h"
 
 GVariant *pixmap_to_gvariant(Pixmap *pixmap);
 

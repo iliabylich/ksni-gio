@@ -1,7 +1,7 @@
-#include "api.h"
 #include "dbusmenu.h"
-#include "host.h"
+#include "ksni-gio.h"
 #include "ksni.h"
+#include "ksni_host.h"
 #include <gio/gio.h>
 #include <glib-object.h>
 #include <glib.h>

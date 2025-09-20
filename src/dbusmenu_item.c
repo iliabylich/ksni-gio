@@ -1,7 +1,6 @@
-#include "api.h"
-#include "dbusmenu_item-private.h"
-#include "glib.h"
-#include <string.h>
+#include "dbusmenu_item_private.h"
+#include "ksni-gio.h"
+#include <glib.h>
 
 dbusmenu_item_t *dbusmenu_item_new_root(guint id) {
   return dbusmenu_item_new_submenu(id, NULL, TRUE);

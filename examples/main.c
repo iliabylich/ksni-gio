@@ -1,4 +1,4 @@
-#include "api.h"
+#include "ksni-gio.h"
 #include <glib-object.h>
 #include <glib.h>
 

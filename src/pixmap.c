@@ -1,5 +1,5 @@
-#include "api.h"
-#include "pixmap-private.h"
+#include "ksni-gio.h"
+#include "pixmap_private.h"
 #include <glib-object.h>
 #include <glib.h>
 
