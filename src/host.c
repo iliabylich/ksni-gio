@@ -15,8 +15,20 @@ static guint signals[LAST_SIGNAL] = {0};
 
 G_DEFINE_TYPE(KsniHost, ksni_host, G_TYPE_OBJECT)
 
+static void ksni_host_dispose(GObject *object) {
+  KsniHost *ksni_host = KSNI_HOST(object);
+
+  if (ksni_host->watch_id > 0) {
+    g_bus_unwatch_name(ksni_host->watch_id);
+    ksni_host->watch_id = 0;
+  }
+
+  G_OBJECT_CLASS(ksni_host_parent_class)->dispose(object);
+}
+
 static void ksni_host_class_init(KsniHostClass *klass) {
   GObjectClass *object_class = G_OBJECT_CLASS(klass);
+  object_class->dispose = ksni_host_dispose;
 
   signals[SIGNAL_APPEARED] = g_signal_new_class_handler(
       "appeared", G_OBJECT_CLASS_TYPE(object_class), G_SIGNAL_RUN_LAST, NULL,

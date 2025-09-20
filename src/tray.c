@@ -33,7 +33,21 @@ static guint signals[LAST_SIGNAL] = {0};
 
 static void tray_dispose(GObject *object) {
   Tray *tray = TRAY(object);
+
+  if (tray->owned_id > 0) {
+    g_bus_unown_name(tray->owned_id);
+    tray->owned_id = 0;
+  }
+
   g_clear_pointer(&tray->ksni, g_object_unref);
+  g_clear_pointer(&tray->ksni_host, g_object_unref);
+  g_clear_pointer(&tray->dbusmenu, g_object_unref);
+  g_clear_pointer(&tray->icon_name, g_free);
+  g_clear_pointer(&tray->icon_pixmap, g_object_unref);
+  g_clear_pointer(&tray->alias_name, g_free);
+  g_clear_pointer(&tray->connection, g_object_unref);
+
+  G_OBJECT_CLASS(tray_parent_class)->dispose(object);
 }
 
 static void tray_class_init(TrayClass *klass) {

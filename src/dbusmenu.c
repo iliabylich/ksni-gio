@@ -17,6 +17,7 @@ struct _DBusMenu {
   guint revision;
   dbusmenu_item_t *menu;
   dbusmenu_item_t *dummy;
+  guint pending_layout_update_id;
 };
 
 enum signal_types {
@@ -39,11 +40,29 @@ static void dbusmenu_init(DBusMenu *dbusmenu) {
   dbusmenu->revision = 1;
   dbusmenu->menu = dbusmenu_item_new_root(0);
   dbusmenu->dummy = dbusmenu_item_new_root(0);
+  dbusmenu->pending_layout_update_id = 0;
 }
 
 static void dbusmenu_dispose(GObject *object) {
-  (void)object;
-  g_print("DBusMenu dispose...\n");
+  DBusMenu *dbusmenu = DBUSMENU(object);
+
+  if (dbusmenu->object_registration_id > 0) {
+    g_dbus_connection_unregister_object(dbusmenu->connection,
+                                        dbusmenu->object_registration_id);
+    dbusmenu->object_registration_id = 0;
+  }
+
+  if (dbusmenu->pending_layout_update_id > 0) {
+    g_source_remove(dbusmenu->pending_layout_update_id);
+    dbusmenu->pending_layout_update_id = 0;
+  }
+
+  g_clear_pointer(&dbusmenu->introspection, g_dbus_node_info_unref);
+  g_clear_pointer(&dbusmenu->menu, dbusmenu_item_free);
+  g_clear_pointer(&dbusmenu->dummy, dbusmenu_item_free);
+  g_clear_pointer(&dbusmenu->alias_name, g_free);
+
+  G_OBJECT_CLASS(dbusmenu_parent_class)->dispose(object);
 }
 
 static void dbusmenu_class_init(DBusMenuClass *klass) {
@@ -94,6 +113,7 @@ static gboolean send_layout_updated_signal(void *user_data) {
     g_error_free(error);
   }
 
+  dbusmenu->pending_layout_update_id = 0;
   return G_SOURCE_REMOVE;
 }
 
@@ -101,8 +121,9 @@ void dbusmenu_update(DBusMenu *dbusmenu, dbusmenu_item_t *menu) {
   g_clear_pointer(&dbusmenu->menu, dbusmenu_item_free);
   dbusmenu->menu = menu;
 
-  if (dbusmenu->connection) {
-    g_idle_add(send_layout_updated_signal, dbusmenu);
+  if (dbusmenu->connection && dbusmenu->pending_layout_update_id == 0) {
+    dbusmenu->pending_layout_update_id =
+        g_idle_add(send_layout_updated_signal, dbusmenu);
   }
 }
 
@@ -172,6 +193,10 @@ static void dbusmenu_get_group_properties(DBusMenu *dbusmenu,
 
   g_dbus_method_invocation_return_value(invocation,
                                         g_variant_new_tuple(&response, 1));
+
+  g_free(props);
+  g_variant_unref(ids_variant);
+  g_variant_unref(property_names_variant);
 }
 
 static void dbusmenu_event_group(DBusMenu *dbusmenu, GVariant *parameters,
@@ -215,6 +240,8 @@ static void dbusmenu_event(DBusMenu *dbusmenu, GVariant *parameters,
   g_signal_emit(dbusmenu, signals[SIGNAL_ITEM_CLICK], 0, id);
 
   g_dbus_method_invocation_return_value(invocation, NULL);
+
+  g_variant_unref(data);
 }
 
 static void

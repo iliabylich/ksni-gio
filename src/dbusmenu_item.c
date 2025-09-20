@@ -139,10 +139,14 @@ dbusmenu_item_t *dbusmenu_item_clone_tree(dbusmenu_item_t *item, guint depth) {
     clone->label = g_strdup(item->label);
   }
 
-  clone->children = malloc(item->children_count * sizeof(void *));
-  for (guint i = 0; i < item->children_count; i++) {
-    dbusmenu_item_t *child = item->children[i];
-    clone->children[i] = dbusmenu_item_clone_tree(child, depth - 1);
+  if (item->children_count > 0) {
+    clone->children = malloc(item->children_count * sizeof(void *));
+    for (guint i = 0; i < item->children_count; i++) {
+      dbusmenu_item_t *child = item->children[i];
+      clone->children[i] = dbusmenu_item_clone_tree(child, depth - 1);
+    }
+  } else {
+    clone->children = NULL;
   }
 
   return clone;

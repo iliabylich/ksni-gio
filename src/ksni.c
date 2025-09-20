@@ -54,7 +54,32 @@ static void ksni_init(Ksni *ksni) {
 
 static void ksni_dispose(GObject *object) {
   Ksni *ksni = KSNI(object);
+
+  if (ksni->own_request_id > 0) {
+    g_bus_unown_name(ksni->own_request_id);
+    ksni->own_request_id = 0;
+  }
+
+  if (ksni->object_registration_id > 0) {
+    g_dbus_connection_unregister_object(ksni->connection,
+                                        ksni->object_registration_id);
+    ksni->object_registration_id = 0;
+  }
+
+  if (ksni->host_watch_id > 0) {
+    g_bus_unwatch_name(ksni->host_watch_id);
+    ksni->host_watch_id = 0;
+  }
+
   g_clear_pointer(&ksni->introspection, g_dbus_node_info_unref);
+  g_clear_pointer(&ksni->alias_name, g_free);
+  g_clear_pointer(&ksni->id, g_free);
+  g_clear_pointer(&ksni->title, g_free);
+  g_clear_pointer(&ksni->icon_name, g_free);
+  g_clear_pointer(&ksni->icon_pixmap, g_object_unref);
+  g_clear_pointer(&ksni->tooltip, g_free);
+
+  G_OBJECT_CLASS(ksni_parent_class)->dispose(object);
 }
 
 static void ksni_get_property(GObject *object, guint property_id, GValue *value,
@@ -165,7 +190,7 @@ static gboolean ksni_set_unique_name(Ksni *ksni) {
 
 static gboolean ksni_set_alias_name(Ksni *ksni) {
   const char *unique_name = ksni->unique_name;
-  if (unique_name[0] != ':') {
+  if (unique_name == NULL || unique_name[0] != ':') {
     g_print("Malformed unique name\n");
     return FALSE;
   }

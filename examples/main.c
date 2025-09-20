@@ -148,8 +148,8 @@ int main(void) {
     g_timeout_add(2000, G_SOURCE_FUNC(do_exit), &exit_data);
   }
 
-  if (getenv("CHANGE_EVERY_SECOND") != NULL) {
-    g_timeout_add(1000, G_SOURCE_FUNC(every_second), tray);
+  if (getenv("DO_CHANGES_AUTOMATICALLY") != NULL) {
+    g_timeout_add(100, G_SOURCE_FUNC(every_second), tray);
   }
 
   g_main_loop_run(loop);
